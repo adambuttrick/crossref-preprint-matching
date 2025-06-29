@@ -98,7 +98,7 @@ The strategy employs weighted scoring based on year, title, and author similarit
 
 ### Match Selection
 
-1. Only candidates achieving a final weighted score greater than or equal to a min_score (default 0.85) are considered potential matches.  
+1. Only candidates achieving a final weighted score greater than or equal to a min_score (default `0.85`) are considered potential matches.  
 2. Among these, only candidates whose scores are within max_score_diff (default `0.03`) of the highest score are returned as the final match to select the best result when multiple candidates have similar high scores.
 
 ### Results
