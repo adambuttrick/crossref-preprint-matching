@@ -6,19 +6,16 @@ This code is intended to evaluate the soundness of the strategy in [arxiv-prepri
 
 
 ## **Installation**
-
-Bash
-
+```
 pip install \-r requirements.txt
-
+```
 ## **Usage**
 
 The script processes a single JSON file containing a list of Crossref works, saving results to a specified output directory.
 
-Bash
-
+```
 python preprint\_match\_data\_files.py \-i INPUT\_FILE \-f FORMAT \-m EMAIL \-u USER\_AGENT \[OPTIONS\]
-
+```
 ### **Required Arguments**
 
 * \-i, \--input: Path to a single JSON file containing Crossref works to be matched.  
@@ -60,18 +57,18 @@ python preprint\_match\_data\_files.py \-i INPUT\_FILE \-f FORMAT \-m EMAIL \-u 
 
 Process a file input\_data/works\_to\_match.json and save CSV results to output\_results/:
 
-Bash
-
+```
 python preprint\_match\_data\_files.py \-i input\_data/works\_to\_match.json \-o output\_results/ \-f csv \-m \<your\_email@example.com\> \-u "MyMatchingTool/1.1 (mailto:your\_email@example.com)"
+```
 
 Process a file preprints/crossref\_data.json, saving JSON results to the default ./output directory, with detailed logging and custom API/strategy settings:
 
-Bash
-
+```
 python preprint\_match\_data\_files.py \-i preprints/crossref\_data.json \-f json \-m \<your\_email@example.com\> \-u "arXivPreprintMatcher/1.0" \\  
  \-ll DEBUG \-lf matching.log \-lc \\  
  \--min-score 0.8 \--weight-title 1.5 \--weight-author 1.0 \\  
  \--timeout 15 45 \--max-retries 5 \--max-consecutive-line-failures 20
+```
 
 ## **Description of Strategy**
 
