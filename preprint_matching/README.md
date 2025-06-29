@@ -10,9 +10,6 @@ This code is intended to evaluate the soundness of the strategy in [arxiv-prepri
 pip install -r requirements.txt
 ```
 ## **Usage**
-
-The script processes a single JSON file containing a list of Crossref works, saving results to a specified output directory.
-
 ```
 python preprint_match_data_files.py -i INPUT_FILE -f FORMAT -m EMAIL -u USER_AGENT [OPTIONS]
 ```
@@ -20,8 +17,8 @@ python preprint_match_data_files.py -i INPUT_FILE -f FORMAT -m EMAIL -u USER_AGE
 
 * `-i, --input`: Path to a single JSON file containing Crossref works to be matched.  
 * `-f, --format`: Output format ('json' or 'csv') for the result files.  
-* `-m, --mailto`: Email address for Crossref API politeness (required by Crossref).  
-* `-u, --user-agent`: User-Agent string for API requests (e.g., "arXivPreprintMatcher/1.0").
+* `-m, --mailto`: Email address for access to the polite pool in the Crossref API.  
+* `-u, --user-agent`: User-Agent string for API requests (e.g., "PreprintMatcher/1.0").
 
 ### **Optional Arguments**
 
@@ -58,7 +55,7 @@ python preprint_match_data_files.py -i INPUT_FILE -f FORMAT -m EMAIL -u USER_AGE
 Process a file `input_data/works_to_match.json` and save CSV results to `output_results/`:
 
 ```
-python preprint_match_data_files.py -i input_data/works_to_match.json -o output_results/ -f csv -m <your_email@example.com> -u "MyMatchingTool/1.1 (mailto:your_email@example.com)"
+python preprint_match_data_files.py -i input_data/works_to_match.json -o output_results/ -f csv -m <your_email@example.com> -u "MatchingTool/1.1 (mailto:your_email@example.com)"
 ```
 
 Process a file `preprints/crossref_data.json`, saving JSON results to the default `./output directory`, with detailed logging and custom API/strategy settings:
@@ -72,37 +69,37 @@ python preprint_match_data_files.py -i preprints/crossref_data.json -f json -m <
 
 ## **Description of Strategy**
 
-This strategy attempts to find potential preprint versions corresponding to input published works. It uses the Crossref API and applies scoring based on metadata similarity.
+This strategy attempts to find preprint matches for published works inputs. It uses the Crossref API and applies scoring based on metadata similarity.
 
-### **Search Approach and Candidate Filtering**
+### Search Approach and Candidate Filtering
 
-1. A bibliographic query string is built using metadata extracted from the input Crossref JSON: the main `title` (and `subtitle`, if present), `publication year`, and the family names of authors. These components are normalized using unidecode, lowercasing, and removing punctuation before constructing the query.  
-2. The query targets the Crossref `/works` endpoint via a robust HTTP session, using the `query.bibliographic` parameter and returning up to 25 candidates. The maximum query length is capped (default 5000).  
-3. Candidates retrieved from Crossref are filtered to include only preprints by accepting only works where the type field is posted-content.
+1. A bibliographic query string is built using metadata extracted from the input Crossref JSON: the main `title` (and `subtitle`, if present), `publication year`, and the family names of authors. These fields are normalized using unidecode, lowercasing, and removing punctuation before constructing the query.  
+2. The query searches the Crossref `/works` endpoint, using the `query.bibliographic` parameter and returning up to 25 candidates. The maximum query length is capped (default 5000).  
+3. Candidates retrieved from Crossref are filtered to include only preprints by accepting only works where the type field `posted-content`.
 
-### **Scoring Logic, Weights, and Heuristics:**
+### Scoring Logic, Weights, and Heuristics:
 
 The strategy employs weighted scoring based on year, title, and author similarity, incorporating fuzzy matching and heuristics.
 
 * **Year Score:**  
-  * Compares the published article's year with the preprint candidate's year (extracted from fields like published-online, issued, etc.).  
-  * Assigns scores based on the difference (`article_year - preprint_year`): a score of 0.0 is given if the difference is negative (article published before preprint). A score of 1.0 is given for a difference of 0-2 years, 0.9 for 3 years, 0.8 for 4 years, and 0.0 for all larger differences. Returns 0.0 if years cannot be compared.  
+  * Compares the published article's year with the preprint candidate's year of publication.  
+  * A score is assigned based on the difference between the published work and candidate's year of publication (`article_year - preprint_year`): a score of 0.0 is given if the difference is negative (article published before preprint). A score of 1.0 is given for a difference of 0-2 years, 0.9 for 3 years, 0.8 for 4 years, and 0.0 for all larger differences. 
 * **Title Score:**  
-  * Compares normalized titles. Normalization includes Unicode handling, accent removal, lowercasing, and punctuation stripping.  
+  * Compares normalized titles. Normalization includes converting Unicode strings to their ASCII representation, lowercasing, and removal of punctuation.  
   * Uses a weighted blend of fuzzy matching scores from the rapidfuzz library: `0.4 * token_set_ratio + 0.4 * token_sort_ratio + 0.2 * WRatio`.  
   * Applies a penalty (`*= 0.7`) if one title starts with a keyword (e.g., "correction", "erratum", "reply", "retraction") while the other does not.  
 * **Author Score:**  
   * Applies several heuristics for comparing normalized author lists from the article and the preprint candidate:  
     * A match between valid, normalized ORCIDs results in a similarity score of 1.0 for that author pair.  
     * For authors without an ORCID match, the strategy iteratively finds the most similar pair of authors between the two lists using `fuzz.token_sort_ratio` on pre-calculated name variations (e.g., "J Smith", "Smith J", "John Smith").  
-    * For efficiency with large author lists, the strategy compares sorted strings of all family names using fuzz.token_sort_ratio.  
+    * For efficiency, when a record contains large author lists, the strategy compares sorted strings of all family names using fuzz.token_sort_ratio.  
     * The final author score is based on the sum of matched pair scores, normalized by the total number of authors from both lists: (`2.0 * score_sum) / total_authors`.  
 * **Final Weighted Score:** Calculated as: (`weight_year * year_score + weight_title * title_score + weight_author * author_score) / (total_weights)`. Default weights heavily favor the title (`2.0`), followed by authors (`0.8`), and year (`0.4`).
 
-### **Match Selection**
+### Match Selection
 
-1. Only candidates achieving a final weighted score greater than or equal to min_score (default 0.85) are considered potential matches.  
-2. Among these, only candidates whose scores are within max_score_diff (default `0.03`) of the highest score are returned as the final match(es). This selects the best result(s) when multiple candidates have very similar high scores.
+1. Only candidates achieving a final weighted score greater than or equal to a min_score (default 0.85) are considered potential matches.  
+2. Among these, only candidates whose scores are within max_score_diff (default `0.03`) of the highest score are returned as the final match to select the best result when multiple candidates have similar high scores.
 
 ### Results
 
