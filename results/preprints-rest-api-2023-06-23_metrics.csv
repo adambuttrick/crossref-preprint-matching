@@ -1,0 +1,2 @@
+Positive References,Positive Predictions,TP,FP,FN,Precision,Recall,F0.5,F1,F1.5
+1509,1444,1427,17,74,0.9882,0.9457,0.9794,0.9665,0.9584
